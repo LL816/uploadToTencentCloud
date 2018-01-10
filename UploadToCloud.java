@@ -10,7 +10,9 @@ import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.region.Region;
 
-import java.io.File;
+import java.io.*;
+import java.time.LocalDate;
+import java.util.*;
 
 /**
  * Created by cheryl.cai on 7/1/2018.
@@ -24,7 +26,13 @@ public class UploadToCloud {
     private PutObjectResult putObjectResult;
     private ListObjectsRequest listObjectsRequest;
     private ObjectListing objectListing;
+
     public boolean forceReplace;
+    public boolean imgOnly;
+    public List<String> sourcePaths;
+    public String destination;
+
+    private  List<String> imgSuffix=new ArrayList<>(Arrays.asList("png","jpg","gif"));
 
     public UploadToCloud(){
         // 1 初始化用户身份信息(secretId, secretKey)
@@ -39,28 +47,72 @@ public class UploadToCloud {
         listObjectsRequest=new ListObjectsRequest(bucketName,"","/","",100);
 
         forceReplace=false;
+        imgOnly=false;
+        sourcePaths=new ArrayList<>();
+        destination="/test-"+ LocalDate.now()+"/";
+
+    }
+    public void uploadFile() {
+        if(sourcePaths.size()<1){
+            sourcePaths=Arrays.asList(new File(".").list());
+        }
+        if(destination.charAt(destination.length()-1)!='/'){
+            destination=destination+'/';
+        }
+        if(!imgOnly){
+            for(String path:sourcePaths) {
+                File file = new File(path);
+                uploadGeneralFileAction(file, destination);
+            }
+        }else{
+            for(String path:sourcePaths) {
+                File file = new File(path);
+                uploadCertainFileAction(file, destination);
+            }
+        }
+        cosclient.shutdown();
+
     }
 
-    public void uploadFile(File file, String address){
+    public void uploadGeneralFileAction(File file, String address){
         if(file.exists()&&file.isFile()){
-            if(forceReplace){
+            uploadFileAction(file,address);
+        }else if(file.exists()&&file.isDirectory()){
+            File[] files = file.listFiles();
+            for(File perFile:files){
+                uploadGeneralFileAction(perFile,address);
+            }
+        }
+    }
+
+    public void uploadFileAction(File file, String address){
+        if (forceReplace) {
+            putObjectRequest = new PutObjectRequest(bucketName, address + file.getPath(), file);
+            putObjectResult = cosclient.putObject(putObjectRequest);
+            System.out.println("upload file " + file.getPath() + " mission succeeded!");
+        } else {
+            if (!checkExistingFile(address + file.getPath())) {
                 putObjectRequest = new PutObjectRequest(bucketName, address + file.getPath(), file);
                 putObjectResult = cosclient.putObject(putObjectRequest);
-                System.out.println("upload file "+file.getPath()+" mission succeeded!");
-            }else {
-                if (!checkExistingFile(address + file.getPath())) {
-                    putObjectRequest = new PutObjectRequest(bucketName, address + file.getPath(), file);
-                    putObjectResult = cosclient.putObject(putObjectRequest);
-                    System.out.println("upload file "+file.getPath()+" mission succeeded!");
-                }
+                System.out.println("upload file " + file.getPath() + " mission succeeded!");
+            }
+        }
+    }
+
+    public void uploadCertainFileAction(File file,String address){
+
+        if(file.exists()&&file.isFile()){
+            if(imgSuffix!=null && imgSuffix.contains(file.getName().substring(file.getName().indexOf(".")+1))){
+                uploadFileAction(file,address);
             }
         }else if(file.exists()&&file.isDirectory()){
             File[] files = file.listFiles();
             for(File perFile:files){
-                uploadFile(perFile,address);
+                uploadCertainFileAction(perFile,address);
             }
         }
     }
+
 
     public boolean checkExistingFile(String name){
         listObjectsRequest.setPrefix(name);

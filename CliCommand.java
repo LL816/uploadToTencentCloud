@@ -1,8 +1,8 @@
 package com.cherylcai.homework;
 
 import org.apache.commons.cli.*;
-import java.io.File;
-
+import java.util.ArrayList;
+import java.util.Arrays;
 /**
  * Created by cheryl.cai on 4/1/2018.
  */
@@ -11,7 +11,6 @@ public class CliCommand {
     private CommandLineParser parser = new DefaultParser();
     private HelpFormatter formatter = new HelpFormatter();
     private UploadToCloud uploadToCloud = new UploadToCloud();
-    private String uploadTo = "/test/";
 
     public void createOptions(String[] args){
 
@@ -27,37 +26,40 @@ public class CliCommand {
         Option force = new Option("F","force",false,"force replace existing files, default setting is false");
         this.options.addOption(force);
 
+        Option imgOnly = new Option("i", "imgOnly", false, "only image files under current dir will be uploaded");
+        this.options.addOption(imgOnly);
+
         try {
             CommandLine commandLine = parser.parse(this.options,args);
 
             if(commandLine.hasOption("h")||commandLine.hasOption("help")) {
-                formatter.printHelp("upload [-hF] [-f file] [-l location]...", options);
-                return;
+                System.out.println("Please use this tool to upload files to your tencent cloud bucket");
+                formatter.printHelp("[-hF] [-f file1,file2,dir...] [-l location]...", options);
+                System.exit(1);
             }
 
             if(commandLine.hasOption("F")||commandLine.hasOption("force")) {
                 uploadToCloud.forceReplace=true;
             }
 
+            if(commandLine.hasOption("i")||commandLine.hasOption("imgOnly")){
+                uploadToCloud.imgOnly=true;
+            }
+
             if(commandLine.hasOption("l")||commandLine.hasOption("location")){
-                uploadTo = commandLine.getOptionValue("l");
+                uploadToCloud.destination = commandLine.getOptionValue("l");
             }
 
             if(commandLine.hasOption("f")||commandLine.hasOption("file")) {
-                String[] filenames=commandLine.getOptionValue("f").split(",");
-                for(String name:filenames){
-                    File uploadFile=new File(name.trim());
-                    String target=uploadTo;
-                    uploadToCloud.uploadFile(uploadFile,uploadTo);
-                }
-            }else{
-                System.out.println("Please define which file to upload!");
-                formatter.printHelp("upload [-hF] [-f file] [-l location]...", options);
+                uploadToCloud.sourcePaths=new ArrayList<>(Arrays.asList(commandLine.getOptionValue("f").split(",")));
             }
+
+            uploadToCloud.uploadFile();
+
 
         } catch (ParseException e) {
             System.out.println(e.getMessage());
-            formatter.printHelp("upload [-hF] [-f file] [-l location]...", options);
+            formatter.printHelp("upload [-hiF] [-f file1,file2,dir...] [-l location]...", options);
 
         }
     }
