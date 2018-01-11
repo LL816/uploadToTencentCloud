@@ -1,6 +1,8 @@
 package com.cherylcai.homework;
 
 import org.apache.commons.cli.*;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 /**
@@ -29,6 +31,9 @@ public class CliCommand {
         Option imgOnly = new Option("i", "imgOnly", false, "only image files under current dir will be uploaded");
         this.options.addOption(imgOnly);
 
+        Option replacemd = new Option("r","replace",true,"replace the image link in certain md file, usually come along with -i option");
+        this.options.addOption(replacemd);
+
         try {
             CommandLine commandLine = parser.parse(this.options,args);
 
@@ -55,6 +60,12 @@ public class CliCommand {
             }
 
             uploadToCloud.uploadFile();
+
+            if(commandLine.hasOption("r")|| commandLine.hasOption("replace")){
+                ReplaceLink replaceLink = new ReplaceLink(uploadToCloud);
+                File replacefile = new File(commandLine.getOptionValue("r"));
+                replaceLink.replace(replacefile);
+            }
 
 
         } catch (ParseException e) {
