@@ -21,6 +21,7 @@ public class UploadToCloud {
     private COSCredentials cred;
     private ClientConfig clientConfig;
     private COSClient cosclient;
+    private String regionName;
     private String bucketName;
     private PutObjectRequest putObjectRequest;
     private PutObjectResult putObjectResult;
@@ -32,13 +33,27 @@ public class UploadToCloud {
     public List<String> sourcePaths;
     public String destination;
 
+    public String getBucketName(){
+        return bucketName;
+    }
+    public String getRegionName(){
+        return regionName;
+    }
+    public ListObjectsRequest getListObjectsRequest(){
+        return listObjectsRequest;
+    }
+    public COSClient getCosclient(){
+        return cosclient;
+    }
+
     private  List<String> imgSuffix=new ArrayList<>(Arrays.asList("png","jpg","gif"));
 
     public UploadToCloud(){
         // 1 初始化用户身份信息(secretId, secretKey)
         cred = new BasicCOSCredentials("AKIDd5HEwQTfQwDF3dcRVLwIQKzQceR0mRIv", "XprMcmgLktnRpyrWx93i7G9m9HApGSQ9");
         // 2 设置bucket的区域, COS地域的简称请参照 https://cloud.tencent.com/document/product/436/6224
-        clientConfig = new ClientConfig(new Region("ap-beijing"));
+        regionName="ap-beijing";
+        clientConfig = new ClientConfig(new Region(regionName));
         // 3 生成cos客户端
         cosclient = new COSClient(cred, clientConfig);
         // bucket的命名规则为{name}-{appid} ，此处填写的存储桶名称必须为此格式
